@@ -20,12 +20,12 @@ Send your current Obsidian markdown note directly to a Xiaomi Moaan inkPalm Plus
 
 1. Install the [BRAT plugin](https://github.com/TfTHacker/obsidian42-brat) from the Community Plugins in Obsidian.
 2. Go to **Settings > BRAT > Add Beta plugin**.
-3. Specify this repository's GitHub URL.
+3. Specify this repository's GitHub URL: `xerons/SendToCrosspoint`.
 4. Enable the plugin under **Settings > Community plugins**.
 
 ### Method 2: Manual Installation
 
-1. Download the latest release (`main.js`, `manifest.json`, and `styles.css`) from the Releases page.
+1. Download the latest release (`main.js`, `manifest.json`, and `styles.css`) from the [Releases page](https://github.com/xerons/SendToCrosspoint/releases).
 2. Inside your Obsidian vault, navigate to `.obsidian/plugins/` and create a new folder named `obsidian-crosspoint`.
 3. Copy the downloaded files into that new folder.
 4. Restart Obsidian or reload the plugins list.
@@ -53,7 +53,7 @@ Before using the plugin, you must configure it to communicate with your device:
 
 If you want to modify this plugin, you can build it from source:
 
-1. Clone this repository.
+1. Clone this repository: `git clone https://github.com/xerons/SendToCrosspoint.git`
 2. Run `npm i` or `yarn` to install dependencies.
 3. Run `npm run dev` to start compilation in watch mode, or `npm run build` to create a production build.
 4. Copy `main.js`, `styles.css`, and `manifest.json` to a folder in your test vault's `.obsidian/plugins/` directory.
