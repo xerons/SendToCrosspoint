@@ -2,6 +2,7 @@ import {
   App,
   Editor,
   MarkdownView,
+  MarkdownRenderer,
   Modal,
   Notice,
   Plugin,
@@ -9,12 +10,14 @@ import {
   Setting,
   requestUrl,
 } from "obsidian";
+import JSZip from "jszip";
 
 interface XteinkSenderSettings {
   deviceIp: string;
   devicePort: string;
   uploadPath: string;
   autoCreateDir: boolean;
+  convertToEpub: boolean;
 }
 
 const DEFAULT_SETTINGS: XteinkSenderSettings = {
@@ -22,6 +25,7 @@ const DEFAULT_SETTINGS: XteinkSenderSettings = {
   devicePort: "80",
   uploadPath: "/",
   autoCreateDir: true,
+  convertToEpub: false,
 };
 
 export default class XteinkSenderPlugin extends Plugin {
@@ -86,17 +90,136 @@ export default class XteinkSenderPlugin extends Plugin {
 
     new Notice(`Sending ${filename} to Crosspoint...`);
 
-    try {
-      // Construct the multipart/form-data payload
-      const boundary =
-        "----WebKitFormBoundary" + Math.random().toString(36).substring(2);
+    let fileBuffer: ArrayBuffer | null = null;
+    let exportFilename = filename;
+    let contentType = "text/markdown";
 
-      // Part 1: File Content
-      let body = `--${boundary}\r\n`;
-      body += `Content-Disposition: form-data; name="file"; filename="${filename}"\r\n`;
-      body += `Content-Type: text/markdown\r\n\r\n`;
-      body += content + `\r\n`;
-      body += `--${boundary}--\r\n`;
+    if (this.settings.convertToEpub) {
+      new Notice(`Converting ${filename} to EPUB...`);
+      exportFilename = filename.replace(/\.md$/i, "") + ".epub";
+      contentType = "application/epub+zip";
+      
+      try {
+        const zip = new JSZip();
+        
+        // mimetype MUST be uncompressed
+        zip.file("mimetype", "application/epub+zip", { compression: "STORE" });
+        
+        // META-INF/container.xml
+        zip.folder("META-INF")?.file(
+          "container.xml",
+          `<?xml version="1.0"?>
+<container version="1.0" xmlns="urn:oasis:names:tc:opendocument:xmlns:container">
+  <rootfiles>
+    <rootfile full-path="OEBPS/content.opf" media-type="application/oebps-package+xml"/>
+  </rootfiles>
+</container>`
+        );
+        
+        // Escape content as XML and convert newlines to <br/>
+        const escapedContent = content
+          .replace(/&/g, "&amp;")
+          .replace(/</g, "&lt;")
+          .replace(/>/g, "&gt;")
+          .replace(/"/g, "&quot;")
+          .replace(/'/g, "&#039;")
+          .replace(/\n/g, "<br/>\n");
+
+        // Generate valid XHTML from content
+        const htmlContent = `<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en">
+<head>
+  <title>${filename}</title>
+</head>
+<body>
+  <div>
+    ${escapedContent}
+  </div>
+</body>
+</html>`;
+
+        // OEBPS/content.opf
+        zip.folder("OEBPS")?.file(
+          "content.opf",
+          `<?xml version="1.0" encoding="UTF-8"?>
+<package version="2.0" xmlns="http://www.idpf.org/2007/opf" unique-identifier="BookId">
+  <metadata xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:opf="http://www.idpf.org/2007/opf">
+    <dc:title>${filename}</dc:title>
+    <dc:language>en</dc:language>
+  </metadata>
+  <manifest>
+    <item id="content" href="content.html" media-type="application/xhtml+xml"/>
+    <item id="toc" href="toc.ncx" media-type="application/x-dtbncx+xml"/>
+  </manifest>
+  <spine toc="toc">
+    <itemref idref="content"/>
+  </spine>
+</package>`
+        );
+
+        // OEBPS/toc.ncx
+        zip.folder("OEBPS")?.file(
+          "toc.ncx",
+          `<?xml version="1.0" encoding="UTF-8"?>
+<ncx version="2005-1" xmlns="http://www.daisy.org/z3986/2005/ncx/">
+  <head>
+    <meta name="dtb:uid" content="BookId"/>
+  </head>
+  <docTitle><text>${filename}</text></docTitle>
+  <navMap>
+    <navPoint id="navPoint-1" playOrder="1">
+      <navLabel><text>Start</text></navLabel>
+      <content src="content.html"/>
+    </navPoint>
+  </navMap>
+</ncx>`
+        );
+
+        // OEBPS/content.html
+        zip.folder("OEBPS")?.file("content.html", htmlContent);
+        
+        // Generate zip buffer using Node Uint8Array compatibility
+        // We compress the rest of the files using DEFLATE
+        const u8array = await zip.generateAsync({
+          type: "uint8array",
+          compression: "DEFLATE",
+          compressionOptions: { level: 5 }
+        });
+        fileBuffer = u8array.buffer as ArrayBuffer;
+      } catch (e) {
+        console.error("EPUB conversion error:", e);
+        new Notice("Failed to convert to EPUB. Sending as markdown instead.");
+        fileBuffer = new TextEncoder().encode(content).buffer;
+      }
+    } else {
+      fileBuffer = new TextEncoder().encode(content).buffer;
+    }
+
+    try {
+      if (!fileBuffer) {
+        throw new Error("Failed to create file buffer.");
+      }
+
+      // Construct the multipart/form-data payload manually to pass arrayBuffer
+      const boundary = "----WebKitFormBoundary" + Math.random().toString(36).substring(2);
+
+      // Part 1: File Content Header
+      let headerStr = `--${boundary}\r\n`;
+      headerStr += `Content-Disposition: form-data; name="file"; filename="${exportFilename}"\r\n`;
+      headerStr += `Content-Type: ${contentType}\r\n\r\n`;
+      
+      const headerBuffer = new TextEncoder().encode(headerStr).buffer;
+      
+      const footerStr = `\r\n--${boundary}--\r\n`;
+      const footerBuffer = new TextEncoder().encode(footerStr).buffer;
+      
+      // Combine body buffers
+      const totalLength = headerBuffer.byteLength + fileBuffer.byteLength + footerBuffer.byteLength;
+      const combinedBody = new Uint8Array(totalLength);
+      combinedBody.set(new Uint8Array(headerBuffer), 0);
+      combinedBody.set(new Uint8Array(fileBuffer), headerBuffer.byteLength);
+      combinedBody.set(new Uint8Array(footerBuffer), headerBuffer.byteLength + fileBuffer.byteLength);
 
       const port = this.settings.devicePort.trim() || "80";
       let uploadPath = this.settings.uploadPath.trim() || "/";
@@ -127,11 +250,11 @@ export default class XteinkSenderPlugin extends Plugin {
         headers: {
           "Content-Type": `multipart/form-data; boundary=${boundary}`,
         },
-        body: body,
+        body: combinedBody.buffer,
       });
 
       if (response.status === 200) {
-        new Notice(`Successfully sent ${filename} to Crosspoint!`);
+        new Notice(`Successfully sent ${exportFilename} to Crosspoint!`);
       } else {
         throw new Error(
           `Device responded with status: ${response.status}. ${response.text}`,
@@ -212,6 +335,18 @@ class XteinkSenderSettingTab extends PluginSettingTab {
           .setValue(this.plugin.settings.autoCreateDir)
           .onChange(async (value) => {
             this.plugin.settings.autoCreateDir = value;
+            await this.plugin.saveSettings();
+          }),
+      );
+
+    new Setting(containerEl)
+      .setName("Convert to EPUB")
+      .setDesc("Convert the markdown file to an EPUB book before sending to Crosspoint.")
+      .addToggle((toggle) =>
+        toggle
+          .setValue(this.plugin.settings.convertToEpub)
+          .onChange(async (value) => {
+            this.plugin.settings.convertToEpub = value;
             await this.plugin.saveSettings();
           }),
       );
