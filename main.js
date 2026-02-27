@@ -98,9 +98,9 @@ var XteinkSenderPlugin = class extends import_obsidian.Plugin {
       if (this.settings.autoCreateDir && uploadPath !== "/") {
         try {
           const mkdirUrl = `http://${ip}:${port}/mkdir?path=${encodeURIComponent(uploadPath)}`;
-          await (0, import_obsidian.requestUrl)({ url: mkdirUrl, method: "GET" });
+          await (0, import_obsidian.requestUrl)({ url: mkdirUrl, method: "POST" });
         } catch (e) {
-          console.debug("Auto-create directory failed or dir exists:", e);
+          console.error("Auto-create directory failed:", e);
         }
       }
       const url = `http://${ip}:${port}/upload?path=${encodeURIComponent(uploadPath)}`;
