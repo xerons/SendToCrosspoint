@@ -105,11 +105,17 @@ export default class XteinkSenderPlugin extends Plugin {
       }
 
       if (this.settings.autoCreateDir && uploadPath !== "/") {
-        try {
-          const mkdirUrl = `http://${ip}:${port}/mkdir?name=${encodeURIComponent(uploadPath)}`;
-          await requestUrl({ url: mkdirUrl, method: "POST" });
-        } catch (e) {
-          console.error("Auto-create directory failed:", e);
+        const segments = uploadPath.split("/").filter(s => s.length > 0);
+        let currentPath = "/";
+
+        for (const segment of segments) {
+          try {
+            const mkdirUrl = `http://${ip}:${port}/mkdir?path=${encodeURIComponent(currentPath)}&name=${encodeURIComponent(segment)}`;
+            await requestUrl({ url: mkdirUrl, method: "POST" });
+          } catch (e) {
+            console.debug(`Folder creation for ${segment} at ${currentPath} failed or already exists.`);
+          }
+          currentPath = currentPath === "/" ? `/${segment}` : `${currentPath}/${segment}`;
         }
       }
 
@@ -150,6 +156,8 @@ class XteinkSenderSettingTab extends PluginSettingTab {
     const { containerEl } = this;
 
     containerEl.empty();
+
+    containerEl.createEl("h3", { text: `Settings for Send to Crosspoint (v${this.plugin.manifest.version})` });
 
     new Setting(containerEl)
       .setName("Device IP Address")

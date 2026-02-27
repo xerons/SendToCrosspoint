@@ -96,11 +96,16 @@ var XteinkSenderPlugin = class extends import_obsidian.Plugin {
         uploadPath = "/" + uploadPath;
       }
       if (this.settings.autoCreateDir && uploadPath !== "/") {
-        try {
-          const mkdirUrl = `http://${ip}:${port}/mkdir?name=${encodeURIComponent(uploadPath)}`;
-          await (0, import_obsidian.requestUrl)({ url: mkdirUrl, method: "POST" });
-        } catch (e) {
-          console.error("Auto-create directory failed:", e);
+        const segments = uploadPath.split("/").filter((s) => s.length > 0);
+        let currentPath = "/";
+        for (const segment of segments) {
+          try {
+            const mkdirUrl = `http://${ip}:${port}/mkdir?path=${encodeURIComponent(currentPath)}&name=${encodeURIComponent(segment)}`;
+            await (0, import_obsidian.requestUrl)({ url: mkdirUrl, method: "POST" });
+          } catch (e) {
+            console.debug(`Folder creation for ${segment} at ${currentPath} failed or already exists.`);
+          }
+          currentPath = currentPath === "/" ? `/${segment}` : `${currentPath}/${segment}`;
         }
       }
       const url = `http://${ip}:${port}/upload?path=${encodeURIComponent(uploadPath)}`;
@@ -133,6 +138,7 @@ var XteinkSenderSettingTab = class extends import_obsidian.PluginSettingTab {
   display() {
     const { containerEl } = this;
     containerEl.empty();
+    containerEl.createEl("h3", { text: `Settings for Send to Crosspoint (v${this.plugin.manifest.version})` });
     new import_obsidian.Setting(containerEl).setName("Device IP Address").setDesc(
       "The IP address of your device on the local Wi-Fi network (e.g., 192.168.1.50). Check the Crosspoint Reader Web UI settings or your router."
     ).addText(

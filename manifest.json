@@ -1,7 +1,7 @@
 {
   "id": "obsidian-crosspoint",
   "name": "Send to Crosspoint",
-  "version": "0.1.1c",
+  "version": "0.1.1d",
   "minAppVersion": "0.15.0",
   "description": "Send your current markdown note directly to a Xiaomi Moaan inkPalm Plus / Xteink X4 running Crosspoint Reader via Wi-Fi.",
   "author": "Xerons",
