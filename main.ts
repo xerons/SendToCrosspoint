@@ -106,7 +106,7 @@ export default class XteinkSenderPlugin extends Plugin {
 
       if (this.settings.autoCreateDir && uploadPath !== "/") {
         try {
-          const mkdirUrl = `http://${ip}:${port}/mkdir?path=${encodeURIComponent(uploadPath)}`;
+          const mkdirUrl = `http://${ip}:${port}/mkdir?name=${encodeURIComponent(uploadPath)}`;
           await requestUrl({ url: mkdirUrl, method: "POST" });
         } catch (e) {
           console.error("Auto-create directory failed:", e);
