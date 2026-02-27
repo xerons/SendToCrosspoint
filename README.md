@@ -1,5 +1,8 @@
 # Send to Crosspoint (Obsidian Plugin)
 
+> [!WARNING]
+> **Disclaimer**: This is a personal/hobby project. Please **always back up your vault** before using new tools or plugins to prevent any accidental data loss.
+
 Send your current Obsidian markdown note directly to a Xiaomi Moaan inkPalm Plus / Xteink X4 running **Crosspoint Reader** via Wi-Fi.
 
 ## Features

@@ -5,23 +5,37 @@
   "main": "main.js",
   "scripts": {
     "dev": "node esbuild.config.mjs",
-    "build": "tsc -noEmit -skipLibCheck && node esbuild.config.mjs production",
+    "build": "npm run test && tsc -noEmit -skipLibCheck && node esbuild.config.mjs production",
+    "test": "jest",
     "version": "node version-bump.mjs && git add manifest.json versions.json"
   },
   "keywords": [],
   "author": "",
   "license": "MIT",
   "devDependencies": {
+    "@babel/core": "^7.29.0",
+    "@babel/preset-env": "^7.29.0",
+    "@babel/preset-typescript": "^7.28.5",
+    "@types/jest": "^30.0.0",
     "@types/node": "^16.11.6",
     "@typescript-eslint/eslint-plugin": "5.29.0",
     "@typescript-eslint/parser": "5.29.0",
+    "babel-jest": "^30.2.0",
     "builtin-modules": "3.3.0",
     "esbuild": "0.17.3",
+    "jest": "^30.2.0",
+    "jest-environment-jsdom": "^30.2.0",
+    "jsdom": "^28.1.0",
+    "jsdom-global": "^3.0.2",
     "obsidian": "latest",
+    "ts-jest": "^29.4.6",
     "tslib": "2.4.0",
     "typescript": "4.7.4"
   },
   "dependencies": {
-    "jszip": "^3.10.1"
+    "@types/marked": "^5.0.2",
+    "fast-xml-parser": "^5.4.1",
+    "jszip": "^3.10.1",
+    "marked": "^17.0.3"
   }
 }
