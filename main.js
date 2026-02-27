@@ -31,7 +31,8 @@ var import_obsidian = require("obsidian");
 var DEFAULT_SETTINGS = {
   deviceIp: "",
   devicePort: "80",
-  uploadPath: "/"
+  uploadPath: "/",
+  autoCreateDir: true
 };
 var XteinkSenderPlugin = class extends import_obsidian.Plugin {
   async onload() {
@@ -94,6 +95,14 @@ var XteinkSenderPlugin = class extends import_obsidian.Plugin {
       if (!uploadPath.startsWith("/")) {
         uploadPath = "/" + uploadPath;
       }
+      if (this.settings.autoCreateDir && uploadPath !== "/") {
+        try {
+          const mkdirUrl = `http://${ip}:${port}/mkdir?path=${encodeURIComponent(uploadPath)}`;
+          await (0, import_obsidian.requestUrl)({ url: mkdirUrl, method: "GET" });
+        } catch (e) {
+          console.debug("Auto-create directory failed or dir exists:", e);
+        }
+      }
       const url = `http://${ip}:${port}/upload?path=${encodeURIComponent(uploadPath)}`;
       const response = await (0, import_obsidian.requestUrl)({
         url,
@@ -145,6 +154,12 @@ var XteinkSenderSettingTab = class extends import_obsidian.PluginSettingTab {
     ).addText(
       (text) => text.setPlaceholder("/").setValue(this.plugin.settings.uploadPath).onChange(async (value) => {
         this.plugin.settings.uploadPath = value;
+        await this.plugin.saveSettings();
+      })
+    );
+    new import_obsidian.Setting(containerEl).setName("Auto-create missing directory").setDesc("Automatically create the upload directory on the device if it doesn't exist.").addToggle(
+      (toggle) => toggle.setValue(this.plugin.settings.autoCreateDir).onChange(async (value) => {
+        this.plugin.settings.autoCreateDir = value;
         await this.plugin.saveSettings();
       })
     );

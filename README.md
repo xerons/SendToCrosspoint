@@ -40,6 +40,7 @@ Before using the plugin, you must configure it to communicate with your device:
 2. **Device IP Address**: Enter the local IP address of your e-reader (e.g., `192.168.1.50`). You can find this on the Crosspoint Web upload screen.
 3. **Device Port**: The port for the web interface. (Default: `80`)
 4. **Upload Path**: The destination path on the device. (Default: `/`)
+5. **Auto-create missing directory**: Automatically create the upload directory on the device if it doesn't exist. (Default: `ON`)
 
 ## Usage
 

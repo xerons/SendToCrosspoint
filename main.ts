@@ -14,12 +14,14 @@ interface XteinkSenderSettings {
   deviceIp: string;
   devicePort: string;
   uploadPath: string;
+  autoCreateDir: boolean;
 }
 
 const DEFAULT_SETTINGS: XteinkSenderSettings = {
   deviceIp: "",
   devicePort: "80",
   uploadPath: "/",
+  autoCreateDir: true,
 };
 
 export default class XteinkSenderPlugin extends Plugin {
@@ -102,6 +104,15 @@ export default class XteinkSenderPlugin extends Plugin {
         uploadPath = "/" + uploadPath;
       }
 
+      if (this.settings.autoCreateDir && uploadPath !== "/") {
+        try {
+          const mkdirUrl = `http://${ip}:${port}/mkdir?path=${encodeURIComponent(uploadPath)}`;
+          await requestUrl({ url: mkdirUrl, method: "GET" });
+        } catch (e) {
+          console.debug("Auto-create directory failed or dir exists:", e);
+        }
+      }
+
       const url = `http://${ip}:${port}/upload?path=${encodeURIComponent(uploadPath)}`;
 
       const response = await requestUrl({
@@ -181,6 +192,18 @@ class XteinkSenderSettingTab extends PluginSettingTab {
           .setValue(this.plugin.settings.uploadPath)
           .onChange(async (value) => {
             this.plugin.settings.uploadPath = value;
+            await this.plugin.saveSettings();
+          }),
+      );
+
+    new Setting(containerEl)
+      .setName("Auto-create missing directory")
+      .setDesc("Automatically create the upload directory on the device if it doesn't exist.")
+      .addToggle((toggle) =>
+        toggle
+          .setValue(this.plugin.settings.autoCreateDir)
+          .onChange(async (value) => {
+            this.plugin.settings.autoCreateDir = value;
             await this.plugin.saveSettings();
           }),
       );
