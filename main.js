@@ -4083,7 +4083,7 @@ async function generateEpubBuffer(content, filename) {
   } else {
     throw new Error("XMLSerializer is not defined in this environment");
   }
-  const xhtmlBody = Array.from(doc.body.childNodes).map((node) => serializer.serializeToString(node)).join("\\n");
+  const xhtmlBody = Array.from(doc.body.childNodes).map((node) => serializer.serializeToString(node)).join("\n");
   const htmlContent = `<?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
 <html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en">

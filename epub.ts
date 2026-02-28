@@ -7,7 +7,7 @@ import { marked } from "marked";
  */
 export async function generateEpubBuffer(
   content: string,
-  filename: string
+  filename: string,
 ): Promise<ArrayBuffer> {
   const zip = new JSZip();
 
@@ -22,7 +22,7 @@ export async function generateEpubBuffer(
   <rootfiles>
     <rootfile full-path="OEBPS/content.opf" media-type="application/oebps-package+xml"/>
   </rootfiles>
-</container>`
+</container>`,
   );
 
   // Parse markdown to HTML using marked
@@ -35,23 +35,23 @@ export async function generateEpubBuffer(
 
   // Convert to strictly valid XHTML using the browser's native DOMParser (or JSDOM in tests)
   let doc: Document;
-  if (typeof DOMParser !== 'undefined') {
-      doc = new DOMParser().parseFromString(parsedHtmlRaw, "text/html");
+  if (typeof DOMParser !== "undefined") {
+    doc = new DOMParser().parseFromString(parsedHtmlRaw, "text/html");
   } else {
-      throw new Error("DOMParser is not defined in this environment");
+    throw new Error("DOMParser is not defined in this environment");
   }
-  
+
   // XMLSerializer guarantees perfectly well-formed XML strings, escaping any arbitrary tags/entities
   let serializer: XMLSerializer;
-  if (typeof XMLSerializer !== 'undefined') {
-      serializer = new XMLSerializer();
+  if (typeof XMLSerializer !== "undefined") {
+    serializer = new XMLSerializer();
   } else {
-      throw new Error("XMLSerializer is not defined in this environment");
+    throw new Error("XMLSerializer is not defined in this environment");
   }
 
   const xhtmlBody = Array.from(doc.body.childNodes)
     .map((node) => serializer.serializeToString(node))
-    .join("\\n");
+    .join("\n");
 
   // Generate valid XHTML from content
   const htmlContent = `<?xml version="1.0" encoding="UTF-8"?>
@@ -83,7 +83,7 @@ export async function generateEpubBuffer(
   <spine toc="toc">
     <itemref idref="content"/>
   </spine>
-</package>`
+</package>`,
   );
 
   // OEBPS/toc.ncx
@@ -101,7 +101,7 @@ export async function generateEpubBuffer(
       <content src="content.html"/>
     </navPoint>
   </navMap>
-</ncx>`
+</ncx>`,
   );
 
   // OEBPS/content.html
